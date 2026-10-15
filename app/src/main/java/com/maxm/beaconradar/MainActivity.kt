@@ -80,6 +80,9 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
         Text("${devices.size} Geräte", color = MaterialTheme.colorScheme.outline)
         Spacer(Modifier.height(8.dp))
 
+        RadarView(devices = devices, pinnedKey = null)
+        Spacer(Modifier.height(8.dp))
+
         LazyColumn(Modifier.weight(1f)) {
             items(devices, key = { it.id }) { d ->
                 DeviceRow(d)

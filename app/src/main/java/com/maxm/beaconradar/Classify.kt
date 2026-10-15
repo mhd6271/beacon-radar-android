@@ -15,6 +15,9 @@ object Classify {
         0x0087 to "Garmin", 0x009E to "Bose", 0x00D2 to "Logitech",
     )
 
+    /** blukii-Fob? (Kennzeichnung im Radar/Liste), wie isBlukii im Web-Tool. */
+    fun isBlukii(d: Device): Boolean = (d.name ?: "").contains("blukii", ignoreCase = true)
+
     fun nearLabel(rssi: Double): String = when {
         rssi >= TH_SEHRNAH -> "sehr nah"
         rssi >= TH_NAH -> "nah"
