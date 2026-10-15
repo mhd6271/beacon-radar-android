@@ -2,10 +2,8 @@ package com.maxm.beaconradar
 
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -33,30 +31,37 @@ private fun hashOf(s: String, mult: Int): Int {
     return h
 }
 
-/** Stabile Farbe pro Geräte-ID (wie colorFor im Web). */
 private fun colorFor(id: String): Color {
     val hue = (((hashOf(id, 31) % 360) + 360) % 360).toFloat()
     return Color.hsv(hue, 0.6f, 0.9f)
 }
 
-/** Stabiler Winkel pro Geräte-ID (nur Optik, ohne Bedeutung – wie angleFor im Web). */
 private fun angleFor(id: String): Double {
     val deg = ((hashOf(id, 131) % 360) + 360) % 360
     return deg * PI / 180.0
 }
 
+/** Text mit dunklem Rand (Halo) -> lesbar auch über Punkten/Überlappung. */
+private fun DrawScope.drawLabel(text: String, x: Float, y: Float, color: Int, size: Float = 26f) {
+    val c = drawContext.canvas.nativeCanvas
+    val halo = Paint().apply {
+        this.color = 0xDD0D1117.toInt(); textSize = size; isAntiAlias = true
+        style = Paint.Style.STROKE; strokeWidth = 6f
+    }
+    val fill = Paint().apply { this.color = color; textSize = size; isAntiAlias = true }
+    c.drawText(text, x, y, halo)
+    c.drawText(text, x, y, fill)
+}
+
 @Composable
 fun RadarView(devices: List<Device>, pinnedKey: String?, modifier: Modifier = Modifier) {
-    Box(
+    Canvas(
         modifier
             .fillMaxWidth()
-            .heightIn(max = 380.dp)
-            .aspectRatio(1f)
-            .padding(4.dp)
+            .height(320.dp)
+            .padding(top = 4.dp, bottom = 4.dp)
     ) {
-        Canvas(Modifier.fillMaxWidth().aspectRatio(1f)) {
-            drawRadar(devices, pinnedKey)
-        }
+        drawRadar(devices, pinnedKey)
     }
 }
 
@@ -65,12 +70,10 @@ private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?) {
     val h = size.height
     val cx = w / 2f
     val cy = h / 2f
-    val maxR = min(w, h) / 2f - 24f
+    val maxR = min(w, h) / 2f - 20f
 
-    val ringColor = Color(0xFF30363D)
-    val zoneLabel = Paint().apply {
-        color = Color(0xFF8B949E).toArgb(); textSize = 26f; isAntiAlias = true
-    }
+    // dunkler Panel-Hintergrund
+    drawCircle(Color(0xFF0D1117), radius = min(w, h) / 2f, center = Offset(cx, cy))
 
     val zones = listOf(
         "sehr nah" to Classify.TH_SEHRNAH,
@@ -78,16 +81,22 @@ private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?) {
         "mittel" to Classify.TH_MITTEL,
         "weit" to Classify.TH_WEIT,
     )
-    for ((label, th) in zones) {
+    // Zonen-Ringe: grün, deutlich sichtbar, nach außen leicht abnehmend
+    zones.forEachIndexed { i, (label, th) ->
         val rad = (1f - nearFrac(th.toDouble())) * maxR
-        drawCircle(ringColor, radius = rad, center = Offset(cx, cy), style = Stroke(width = 2f))
-        drawContext.canvas.nativeCanvas.drawText("$label ($th)", cx + 6f, cy - rad + 26f, zoneLabel)
+        val alpha = 0.60f - i * 0.10f
+        drawCircle(
+            Color(0xFF3FB950).copy(alpha = alpha),
+            radius = rad, center = Offset(cx, cy),
+            style = Stroke(width = 3.5f),
+        )
+        drawLabel("$label ($th)", cx + 8f, cy - rad + 26f, Color(0xFFADBAC7).toArgb(), 24f)
     }
 
-    // Zentrum = du
-    drawCircle(Color(0xFF3FB950), radius = 9f, center = Offset(cx, cy))
-    val duPaint = Paint().apply { color = Color(0xFFE6EDF3).toArgb(); textSize = 28f; isAntiAlias = true }
-    drawContext.canvas.nativeCanvas.drawText("du", cx + 14f, cy + 8f, duPaint)
+    // Zentrum = du (mit Glow)
+    drawCircle(Color(0xFF3FB950).copy(alpha = 0.25f), radius = 20f, center = Offset(cx, cy))
+    drawCircle(Color(0xFF3FB950), radius = 11f, center = Offset(cx, cy))
+    drawLabel("du", cx + 16f, cy + 8f, Color(0xFFE6EDF3).toArgb(), 28f)
 
     for (d in devices) {
         val blk = Classify.isBlukii(d)
@@ -101,19 +110,18 @@ private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?) {
             blk -> Color(0xFF2DD4BF)
             else -> colorFor(d.id)
         }
-        drawCircle(dotColor, radius = if (sel) 11f else 8f, center = Offset(x, y))
+        drawCircle(dotColor, radius = if (sel) 12f else 9f, center = Offset(x, y))
         if (sel || blk) {
             drawCircle(
-                dotColor, radius = if (sel) 16f else 13f, center = Offset(x, y),
+                dotColor, radius = if (sel) 17f else 14f, center = Offset(x, y),
                 style = Stroke(width = 3f),
             )
         }
-        // Label nur für nähere Geräte, sonst wird's zu voll
-        if (d.rssi >= Classify.TH_MITTEL) {
+        // Namens-Label nur für nähere Geräte, sonst wird's zu voll
+        if (d.rssi >= Classify.TH_NAH) {
             val name = d.name ?: ("Gerät " + d.id.takeLast(5))
             val lbl = (if (blk) "🔑 " else "") + name
-            val p = Paint().apply { color = dotColor.toArgb(); textSize = 24f; isAntiAlias = true }
-            drawContext.canvas.nativeCanvas.drawText(lbl, x + 14f, y + 8f, p)
+            drawLabel(lbl, x + 15f, y + 8f, dotColor.toArgb(), 24f)
         }
     }
 }
