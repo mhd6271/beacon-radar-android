@@ -18,11 +18,11 @@ object Classify {
     /** blukii-Fob? (Kennzeichnung im Radar/Liste), wie isBlukii im Web-Tool. */
     fun isBlukii(d: Device): Boolean = (d.name ?: "").contains("blukii", ignoreCase = true)
 
-    fun nearLabel(rssi: Double): String = when {
-        rssi >= TH_SEHRNAH -> "sehr nah"
-        rssi >= TH_NAH -> "nah"
-        rssi >= TH_MITTEL -> "mittel"
-        rssi >= TH_WEIT -> "weit"
+    fun nearLabel(rssi: Double, th: ZoneTh = Zones.th.value): String = when {
+        rssi >= th.sehrnah -> "sehr nah"
+        rssi >= th.nah -> "nah"
+        rssi >= th.mittel -> "mittel"
+        rssi >= th.weit -> "weit"
         else -> "sehr weit"
     }
 

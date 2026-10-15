@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -29,9 +30,31 @@ object BleRepository {
     private val _history = MutableStateFlow<List<HistoryEntry>>(emptyList())
     val history: StateFlow<List<HistoryEntry>> = _history
 
+    // Angeheftetes (verfolgtes) Gerät + Trend (wärmer/kälter)
+    private val _pinned = MutableStateFlow<String?>(null)
+    val pinned: StateFlow<String?> = _pinned
+    private val _trend = MutableStateFlow(0.0)
+    val trend: StateFlow<Double> = _trend
+    private val pinHist = ArrayDeque<Pair<Long, Double>>()
+    private var prefs: SharedPreferences? = null
+
     private var scanner: BluetoothLeScanner? = null
     private var appCtx: Context? = null
     private var running = false
+
+    fun loadPrefs(context: Context) {
+        val p = context.applicationContext.getSharedPreferences("beacon_radar", Context.MODE_PRIVATE)
+        prefs = p
+        _pinned.value = p.getString("pin", null)
+    }
+
+    /** Gerät anheften/verfolgen (null = lösen). */
+    fun pin(key: String?) {
+        _pinned.value = key
+        prefs?.edit()?.putString("pin", key)?.apply()
+        synchronized(pinHist) { pinHist.clear() }
+        _trend.value = 0.0
+    }
 
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) = handle(result)
@@ -86,8 +109,20 @@ object BleRepository {
             if (companies.isNotEmpty()) existing.companies = companies
             existing.lastSeen = now
         }
-        checkProximity(devices.getValue(id))
+        val dev = devices.getValue(id)
+        checkProximity(dev)
+        if (dev.key == _pinned.value) updateTrend(dev, now)
         emit()
+    }
+
+    /** Trend des verfolgten Geräts: jetzt vs. ~3 s zuvor (für 🔥 wärmer / ❄️ kälter). */
+    private fun updateTrend(d: Device, now: Long) {
+        synchronized(pinHist) {
+            pinHist.addLast(now to d.rssi)
+            while (pinHist.size > 80) pinHist.removeFirst()
+            val past = pinHist.firstOrNull { now - it.first in 2000..6000 }
+            _trend.value = if (past != null) d.rssi - past.second else 0.0
+        }
     }
 
     private fun emit() {
@@ -100,7 +135,7 @@ object BleRepository {
 
     /** Eintritt in „sehr nah" mit Hysterese: erster Kontakt löst nicht aus. */
     private fun checkProximity(d: Device) {
-        val enter = Classify.TH_SEHRNAH
+        val enter = Zones.th.value.sehrnah
         val was = nearState[d.key]
         when {
             was == null -> nearState[d.key] = d.rssi >= enter

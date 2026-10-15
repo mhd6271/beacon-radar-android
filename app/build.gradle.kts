@@ -12,8 +12,8 @@ android {
         applicationId = "com.maxm.beaconradar"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 4
+        versionName = "0.4"
     }
 
     buildTypes {
