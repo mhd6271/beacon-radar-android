@@ -12,11 +12,29 @@ android {
         applicationId = "com.maxm.beaconradar"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.5.1"
+    }
+
+    // Fester Signaturschlüssel, damit neue APKs sich drüberinstallieren lassen.
+    // CI: aus GitHub-Secrets; lokal: KEYSTORE_FILE usw. aus ~/.android-signing/beacon-radar/.
+    // Ohne KEYSTORE_FILE gilt der normale Debug-Schlüssel des Rechners.
+    val keystoreFile = System.getenv("KEYSTORE_FILE")?.let { file(it) }
+    signingConfigs {
+        if (keystoreFile != null) {
+            create("fixed") {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            if (keystoreFile != null) signingConfig = signingConfigs.getByName("fixed")
+        }
         release { isMinifyEnabled = false }
     }
     compileOptions {
