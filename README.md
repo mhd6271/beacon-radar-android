@@ -5,11 +5,13 @@ Native Android-App (Kotlin + Jetpack Compose), die die Logik des Python-Laptop-T
 mit Hintergrund-Scan und nativen Benachrichtigungen (auch bei ausgeschaltetem Display).
 
 ## Status
-**v0.5** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Ein Test auf einem
-echten Gerät ist im Repo nicht dokumentiert (BLE geht nicht im Emulator).
+**v0.5** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Am 01.11.2026 auf einem
+Pixel 6a getestet: läuft (BLE geht nicht im Emulator).
 
 **Download:** [Neuestes APK](https://github.com/mhd6271/beacon-radar-android/releases/tag/latest)
-(Debug-Build, wird bei jedem Push auf `main` neu erzeugt).
+(Debug-Build, wird bei jedem Push auf `main` neu erzeugt). Achtung: Jeder CI-Lauf signiert
+mit einem neuen Debug-Schlüssel, ein Update geht deshalb nur nach Deinstallieren der alten
+Fassung (Zonen und Verlauf gehen dabei verloren).
 
 ## Features (portiert)
 - BLE-Scan über `BluetoothLeScanner`
