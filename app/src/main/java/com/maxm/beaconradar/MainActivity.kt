@@ -7,7 +7,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -71,6 +72,7 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
     val pinnedKey by BleRepository.pinned.collectAsState()
     val trend by BleRepository.trend.collectAsState()
     val th by Zones.th.collectAsState()
+    val ignored by BleRepository.ignored.collectAsState()
     val scanning by BleRepository.running.collectAsState()
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -81,7 +83,10 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${devices.size} Geräte", color = MaterialTheme.colorScheme.outline)
+            Text(
+                "${devices.size} Geräte · lange tippen = eigenes Gerät",
+                color = MaterialTheme.colorScheme.outline, fontSize = 12.sp,
+            )
             Spacer(Modifier.weight(1f))
             TextButton(onClick = { Zones.reset() }) { Text("Zonen zurücksetzen", fontSize = 12.sp) }
         }
@@ -93,14 +98,16 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
             Spacer(Modifier.height(8.dp))
         }
 
-        RadarView(devices = devices, pinnedKey = pinnedKey)
+        RadarView(devices = devices, pinnedKey = pinnedKey, ignored = ignored)
         Spacer(Modifier.height(8.dp))
 
         LazyColumn(Modifier.weight(1f)) {
             items(devices, key = { it.id }) { d ->
-                DeviceRow(d, selected = d.key == pinnedKey, th = th) {
-                    BleRepository.pin(if (d.key == pinnedKey) null else d.key)
-                }
+                DeviceRow(
+                    d, selected = d.key == pinnedKey, own = d.key in ignored, th = th,
+                    onClick = { BleRepository.pin(if (d.key == pinnedKey) null else d.key) },
+                    onLongClick = { BleRepository.toggleIgnored(d.key) },
+                )
                 Divider()
             }
         }
@@ -124,15 +131,23 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DeviceRow(d: Device, selected: Boolean, th: ZoneTh, onClick: () -> Unit) {
+fun DeviceRow(
+    d: Device, selected: Boolean, own: Boolean, th: ZoneTh,
+    onClick: () -> Unit, onLongClick: () -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 6.dp),
     ) {
-        Text((if (selected) "⭐ " else "") + (d.name ?: ("Gerät " + d.id.takeLast(5))))
+        Text(
+            (if (selected) "⭐ " else "") + (if (own) "🏠 " else "") +
+                (d.name ?: ("Gerät " + d.id.takeLast(5))) + (if (own) "  (eigenes, kein Alarm)" else ""),
+            color = if (own) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
+        )
         Text(d.id, fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
         Text(
             "🏷️ ${Classify.classify(d)}   ·   ${d.rssi.toInt()} dBm   ·   ${Classify.nearLabel(d.rssi, th)}",

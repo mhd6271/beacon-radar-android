@@ -5,8 +5,9 @@ Native Android-App (Kotlin + Jetpack Compose), die die Logik des Python-Laptop-T
 mit Hintergrund-Scan und nativen Benachrichtigungen (auch bei ausgeschaltetem Display).
 
 ## Status
-**v0.5.1** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Am 01.11.2026 auf einem
-Pixel 6a getestet: läuft (BLE geht nicht im Emulator).
+**v0.6** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). v0.5 am 01.11.2026
+auf einem Pixel 6a getestet: läuft (BLE geht nicht im Emulator). Die Ignorier-Liste (v0.6)
+ist auf dem Pixel installiert, ihre Bedienung dort aber noch nicht geprüft.
 
 **Download:** [Neuestes APK](https://github.com/mhd6271/beacon-radar-android/releases/tag/latest)
 (Debug-Build, wird bei jedem Push auf `main` neu erzeugt). Ab v0.5.1 signiert die CI mit
@@ -29,6 +30,10 @@ bleiben erhalten. (Wer noch v0.5 oder älter hat, muss einmal deinstallieren.)
 - **Zonen per Touch**: Ringe im Radar ziehen, Schwellen werden gespeichert;
   „Zonen zurücksetzen" stellt die Standardwerte wieder her (v0.4)
 - **Verfolgen**: Gerät antippen → Balken + 🔥 wärmer / ❄️ kälter (v0.4)
+- **Eigene Geräte** (Ignorier-Liste): Gerät in der Liste lange antippen → 🏠, grau im Radar,
+  löst keinen Alarm und keinen Verlaufseintrag aus; nochmal lange tippen hebt das auf.
+  Gespeichert pro Gerät (iBeacon-Kennung bzw. MAC). Handys wechseln ihre MAC regelmäßig,
+  dort hält die Markierung deshalb nur begrenzt (v0.6)
 
 ## Projektstruktur
 ```
@@ -74,5 +79,4 @@ set -a; . ~/.android-signing/beacon-radar/credentials.env; set +a
 ```
 
 ## Nächste Schritte (TODO)
-- **Ignorier-Liste** für eigene Geräte (nur fremde lösen Alarm aus)
 - Akku-Tuning (Scan-Intervall / `SCAN_MODE_BALANCED`)

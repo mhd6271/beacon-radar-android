@@ -66,7 +66,12 @@ private fun DrawScope.drawLabel(text: String, x: Float, y: Float, color: Int, si
 }
 
 @Composable
-fun RadarView(devices: List<Device>, pinnedKey: String?, modifier: Modifier = Modifier) {
+fun RadarView(
+    devices: List<Device>,
+    pinnedKey: String?,
+    ignored: Set<String> = emptySet(),
+    modifier: Modifier = Modifier,
+) {
     val th by Zones.th.collectAsState()
     var dragIdx by remember { mutableStateOf(-1) }
 
@@ -114,11 +119,11 @@ fun RadarView(devices: List<Device>, pinnedKey: String?, modifier: Modifier = Mo
                 )
             }
     ) {
-        drawRadar(devices, pinnedKey, th)
+        drawRadar(devices, pinnedKey, th, ignored)
     }
 }
 
-private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?, th: ZoneTh) {
+private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?, th: ZoneTh, ignored: Set<String>) {
     val w = size.width
     val h = size.height
     val cx = w / 2f
@@ -160,6 +165,7 @@ private fun DrawScope.drawRadar(devices: List<Device>, pinnedKey: String?, th: Z
         val y = cy + rad * sin(a).toFloat()
         val dotColor = when {
             sel -> Color(0xFFF0B429)
+            d.key in ignored -> Color(0xFF6E7681)   // eigenes Gerät: grau
             blk -> Color(0xFF2DD4BF)
             else -> colorFor(d.id)
         }

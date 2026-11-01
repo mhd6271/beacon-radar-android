@@ -39,6 +39,10 @@ object BleRepository {
     private val _trend = MutableStateFlow(0.0)
     val trend: StateFlow<Double> = _trend
     private val pinHist = ArrayDeque<Pair<Long, Double>>()
+
+    // Eigene Geräte (Schlüssel wie Device.key): lösen keinen Alarm/Verlauf aus
+    private val _ignored = MutableStateFlow<Set<String>>(emptySet())
+    val ignored: StateFlow<Set<String>> = _ignored
     private var prefs: SharedPreferences? = null
 
     private var scanner: BluetoothLeScanner? = null
@@ -53,11 +57,20 @@ object BleRepository {
         val p = context.applicationContext.getSharedPreferences("beacon_radar", Context.MODE_PRIVATE)
         prefs = p
         _pinned.value = p.getString("pin", null)
+        _ignored.value = p.getStringSet("ignored", emptySet())?.toSet() ?: emptySet()
         if (historyFile == null) {
             val f = File(context.applicationContext.filesDir, "history.json")
             historyFile = f
             _history.value = readHistory(f)
         }
+    }
+
+    /** Gerät als eigenes markieren bzw. wieder freigeben. */
+    fun toggleIgnored(key: String) {
+        val s = _ignored.value.toMutableSet()
+        if (!s.remove(key)) s.add(key)
+        _ignored.value = s
+        prefs?.edit()?.putStringSet("ignored", s)?.apply()
     }
 
     /** Verlauf leeren (Speicher + Datei). */
@@ -195,6 +208,7 @@ object BleRepository {
     }
 
     private fun onEnterSehrNah(d: Device) {
+        if (d.key in _ignored.value) return
         val entry = HistoryEntry(
             ts = System.currentTimeMillis(),
             id = d.id,
