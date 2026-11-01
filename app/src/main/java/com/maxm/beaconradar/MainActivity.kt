@@ -71,16 +71,13 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
     val pinnedKey by BleRepository.pinned.collectAsState()
     val trend by BleRepository.trend.collectAsState()
     val th by Zones.th.collectAsState()
-    var scanning by remember { mutableStateOf(false) }
+    val scanning by BleRepository.running.collectAsState()
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("📡 Beacon Radar", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.weight(1f))
-            Button(onClick = {
-                scanning = !scanning
-                if (scanning) onStart() else onStop()
-            }) { Text(if (scanning) "Stop" else "Start") }
+            Button(onClick = { if (scanning) onStop() else onStart() }) { Text(if (scanning) "Stop" else "Start") }
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -110,9 +107,13 @@ fun AppScreen(onStart: () -> Unit, onStop: () -> Unit) {
 
         if (history.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            Text("📋 Verlauf — Eintritte in „sehr nah“", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("📋 Verlauf — Eintritte in „sehr nah“", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { BleRepository.clearHistory() }) { Text("Leeren", fontSize = 12.sp) }
+            }
             LazyColumn(Modifier.heightIn(max = 220.dp)) {
-                items(history.reversed(), key = { it.ts }) { h ->
+                items(history.reversed(), key = { "${it.ts}:${it.id}" }) { h ->
                     Text(
                         "${timeFmt.format(Date(h.ts))}  ·  ${h.name}  ·  ${h.typ}  ·  ${h.rssi} dBm",
                         fontSize = 12.sp,

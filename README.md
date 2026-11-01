@@ -5,7 +5,7 @@ Native Android-App (Kotlin + Jetpack Compose), die die Logik des Python-Laptop-T
 mit Hintergrund-Scan und nativen Benachrichtigungen (auch bei ausgeschaltetem Display).
 
 ## Status
-**v0.4** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Ein Test auf einem
+**v0.5** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Ein Test auf einem
 echten Gerät ist im Repo nicht dokumentiert (BLE geht nicht im Emulator).
 
 **Download:** [Neuestes APK](https://github.com/mhd6271/beacon-radar-android/releases/tag/latest)
@@ -17,7 +17,8 @@ echten Gerät ist im Repo nicht dokumentiert (BLE geht nicht im Emulator).
 - Zonen: **sehr nah −60 / nah −72 / mittel −83 / weit −90 dBm**
 - **Alarm bei Eintritt in „sehr nah"**: Notification + Ton + Vibration, mit Hysterese
   (erster Kontakt löst nicht aus) und 1,5-s-Entprellung
-- **Verlauf/History** der Eintritte (Zeit · Gerät · Typ · Signal)
+- **Verlauf/History** der Eintritte (Zeit · Gerät · Typ · Signal), wird gespeichert
+  (`history.json` im App-Speicher, max. 500 Einträge) und lässt sich leeren (v0.5)
 - **Typ-Erkennung** über Hersteller-Company-ID + iBeacon-Parsing
   (inkl. Fix: iBeacons werden nicht mehr fälschlich als „Apple" gelabelt)
 - **Foreground-Service** für Scan im Hintergrund
@@ -55,6 +56,5 @@ Die CI (`.github/workflows/build.yml`) baut bei jedem Push und lädt das APK auf
 zusätzlich in das Release `latest` hoch (überschreibt das vorige).
 
 ## Nächste Schritte (TODO)
-- Verlauf **persistent** speichern (Room oder Datei) — überlebt dann App-Neustart
 - **Ignorier-Liste** für eigene Geräte (nur fremde lösen Alarm aus)
 - Akku-Tuning (Scan-Intervall / `SCAN_MODE_BALANCED`)

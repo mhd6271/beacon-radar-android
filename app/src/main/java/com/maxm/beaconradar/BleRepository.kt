@@ -10,6 +10,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 /**
  * Zentrales BLE-Scanning + Zustand (Singleton). Portiert die Kernlogik aus beacon_radar.py:
@@ -40,12 +43,55 @@ object BleRepository {
 
     private var scanner: BluetoothLeScanner? = null
     private var appCtx: Context? = null
-    private var running = false
+    private var historyFile: File? = null
+
+    // Läuft der Scan wirklich? (UI liest das, statt sich den Knopf-Zustand selbst zu merken)
+    private val _running = MutableStateFlow(false)
+    val running: StateFlow<Boolean> = _running
 
     fun loadPrefs(context: Context) {
         val p = context.applicationContext.getSharedPreferences("beacon_radar", Context.MODE_PRIVATE)
         prefs = p
         _pinned.value = p.getString("pin", null)
+        if (historyFile == null) {
+            val f = File(context.applicationContext.filesDir, "history.json")
+            historyFile = f
+            _history.value = readHistory(f)
+        }
+    }
+
+    /** Verlauf leeren (Speicher + Datei). */
+    fun clearHistory() {
+        _history.value = emptyList()
+        saveHistory()
+    }
+
+    private fun readHistory(f: File): List<HistoryEntry> = try {
+        if (!f.exists()) emptyList() else {
+            val arr = JSONArray(f.readText())
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                HistoryEntry(o.getLong("ts"), o.getString("id"), o.getString("name"),
+                    o.getString("typ"), o.getInt("rssi"))
+            }
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+
+    private fun saveHistory() {
+        val f = historyFile ?: return
+        val arr = JSONArray()
+        for (e in _history.value) {
+            arr.put(JSONObject().put("ts", e.ts).put("id", e.id).put("name", e.name)
+                .put("typ", e.typ).put("rssi", e.rssi))
+        }
+        try {
+            val tmp = File(f.parentFile, f.name + ".tmp")
+            tmp.writeText(arr.toString())
+            tmp.renameTo(f)
+        } catch (_: Exception) {
+        }
     }
 
     /** Gerät anheften/verfolgen (null = lösen). */
@@ -63,8 +109,9 @@ object BleRepository {
 
     @SuppressLint("MissingPermission")
     fun start(context: Context) {
-        if (running) return
+        if (_running.value) return
         appCtx = context.applicationContext
+        loadPrefs(context)
         val mgr = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         scanner = mgr?.adapter?.bluetoothLeScanner ?: return
         val settings = ScanSettings.Builder()
@@ -72,7 +119,7 @@ object BleRepository {
             .build()
         try {
             scanner?.startScan(null, settings, callback)
-            running = true
+            _running.value = true
         } catch (_: SecurityException) {
         }
     }
@@ -80,7 +127,7 @@ object BleRepository {
     @SuppressLint("MissingPermission")
     fun stop() {
         try { scanner?.stopScan(callback) } catch (_: Exception) {}
-        running = false
+        _running.value = false
     }
 
     @SuppressLint("MissingPermission")
@@ -156,6 +203,7 @@ object BleRepository {
             rssi = d.rssi.toInt(),
         )
         _history.value = (_history.value + entry).takeLast(500)
+        saveHistory()
         appCtx?.let { ctx ->
             val now = System.currentTimeMillis()
             if (now - lastBeep > BEEP_THROTTLE_MS) {
@@ -163,6 +211,5 @@ object BleRepository {
                 Notifier.alarm(ctx, entry)
             }
         }
-        // TODO (neue Session): Verlauf persistent speichern (Room oder Datei).
     }
 }
