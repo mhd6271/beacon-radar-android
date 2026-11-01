@@ -5,13 +5,13 @@ Native Android-App (Kotlin + Jetpack Compose), die die Logik des Python-Laptop-T
 mit Hintergrund-Scan und nativen Benachrichtigungen (auch bei ausgeschaltetem Display).
 
 ## Status
-**v0.5** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Am 01.11.2026 auf einem
+**v0.5.1** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Am 01.11.2026 auf einem
 Pixel 6a getestet: läuft (BLE geht nicht im Emulator).
 
 **Download:** [Neuestes APK](https://github.com/mhd6271/beacon-radar-android/releases/tag/latest)
-(Debug-Build, wird bei jedem Push auf `main` neu erzeugt). Achtung: Jeder CI-Lauf signiert
-mit einem neuen Debug-Schlüssel, ein Update geht deshalb nur nach Deinstallieren der alten
-Fassung (Zonen und Verlauf gehen dabei verloren).
+(Debug-Build, wird bei jedem Push auf `main` neu erzeugt). Ab v0.5.1 signiert die CI mit
+einem festen Schlüssel: Neue Fassungen lassen sich drüberinstallieren, Zonen und Verlauf
+bleiben erhalten. (Wer noch v0.5 oder älter hat, muss einmal deinstallieren.)
 
 ## Features (portiert)
 - BLE-Scan über `BluetoothLeScanner`
@@ -55,7 +55,23 @@ Benötigt JDK 17 + Android SDK (Plattform 34). Der Gradle-Wrapper (8.9) ist eing
 Auf dem Handy: „Installation aus unbekannten Quellen" erlauben, APK öffnen/installieren.
 
 Die CI (`.github/workflows/build.yml`) baut bei jedem Push und lädt das APK auf `main`
-zusätzlich in das Release `latest` hoch (überschreibt das vorige).
+zusätzlich in das Release `latest` hoch (überschreibt das vorige). Ein Commit mit
+`[skip ci]` in der Nachricht löst keinen Build aus (z. B. reine Doku-Änderungen).
+
+### Signatur
+Die CI signiert mit einem festen Schlüssel aus den GitHub-Secrets `KEYSTORE_BASE64`,
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. Original auf Max' Mac:
+`~/.android-signing/beacon-radar/` (`beacon-radar.jks` + `credentials.env`, nicht im Repo).
+Zertifikat SHA-256: `4c01b02c…45b0964b`.
+**Den Schlüssel nicht verlieren:** Ohne ihn lässt sich keine Fassung mehr über die
+installierte App installieren.
+
+Lokal mit demselben Schlüssel bauen (sonst nimmt Gradle den Debug-Schlüssel des Rechners):
+```bash
+export KEYSTORE_FILE=~/.android-signing/beacon-radar/beacon-radar.jks
+set -a; . ~/.android-signing/beacon-radar/credentials.env; set +a
+./gradlew assembleDebug
+```
 
 ## Nächste Schritte (TODO)
 - **Ignorier-Liste** für eigene Geräte (nur fremde lösen Alarm aus)
