@@ -5,9 +5,11 @@ Native Android-App (Kotlin + Jetpack Compose), die die Logik des Python-Laptop-T
 mit Hintergrund-Scan und nativen Benachrichtigungen (auch bei ausgeschaltetem Display).
 
 ## Status
-**v0.1 Gerüst** — vollständige Projektstruktur + Kernlogik. Muss noch einmal gebaut,
-auf Kompilierfehler geprüft und auf einem echten Gerät getestet werden (BLE geht nicht
-im Emulator).
+**v0.4** — baut per GitHub Actions fehlerfrei (Debug-APK, siehe unten). Ein Test auf einem
+echten Gerät ist im Repo nicht dokumentiert (BLE geht nicht im Emulator).
+
+**Download:** [Neuestes APK](https://github.com/mhd6271/beacon-radar-android/releases/tag/latest)
+(Debug-Build, wird bei jedem Push auf `main` neu erzeugt).
 
 ## Features (portiert)
 - BLE-Scan über `BluetoothLeScanner`
@@ -19,6 +21,11 @@ im Emulator).
 - **Typ-Erkennung** über Hersteller-Company-ID + iBeacon-Parsing
   (inkl. Fix: iBeacons werden nicht mehr fälschlich als „Apple" gelabelt)
 - **Foreground-Service** für Scan im Hintergrund
+- **Radar-Ansicht** (Mitte = du, Abstand zur Mitte = Signalstärke, Winkel bedeutungslos);
+  blukii-Fobs werden hervorgehoben (ab v0.2)
+- **Zonen per Touch**: Ringe im Radar ziehen, Schwellen werden gespeichert;
+  „Zonen zurücksetzen" stellt die Standardwerte wieder her (v0.4)
+- **Verfolgen**: Gerät antippen → Balken + 🔥 wärmer / ❄️ kälter (v0.4)
 
 ## Projektstruktur
 ```
@@ -26,29 +33,28 @@ app/src/main/
   AndroidManifest.xml
   java/com/maxm/beaconradar/
     Models.kt          Datenklassen (Device, IBeacon, HistoryEntry)
-    Classify.kt        Zonen-Schwellen, iBeacon-Parsing, Typ-Erkennung
+    Classify.kt        Zonen-Einstufung, iBeacon-Parsing, Typ-Erkennung
+    Zones.kt           verschiebbare Zonen-Schwellen (SharedPreferences)
+    RadarView.kt       Radar-Canvas + Ziehen der Zonen-Ringe
     Notifier.kt        Notification-Kanäle + Alarm
-    BleRepository.kt   Scan + Zustand (StateFlow) + „sehr nah"-Logik
+    BleRepository.kt   Scan + Zustand (StateFlow) + „sehr nah"-Logik + Verfolgen/Trend
     ScanService.kt     Foreground-Service
-    MainActivity.kt    Compose-UI (Geräteliste + Verlauf, Start/Stop)
+    MainActivity.kt    Compose-UI (Radar, Verfolgen, Geräteliste, Verlauf, Start/Stop)
   res/values/          strings.xml, themes.xml
 ```
 
 ## Bauen (Debug-APK)
-Benötigt Android SDK + Gradle (im Cloud-Container installierbar).
+Benötigt JDK 17 + Android SDK (Plattform 34). Der Gradle-Wrapper (8.9) ist eingecheckt.
 ```bash
-# einmalig: Wrapper erzeugen (falls nicht vorhanden)
-gradle wrapper --gradle-version 8.9
-
-# Debug-APK bauen
 ./gradlew assembleDebug
 # Ergebnis: app/build/outputs/apk/debug/app-debug.apk
 ```
 Auf dem Handy: „Installation aus unbekannten Quellen" erlauben, APK öffnen/installieren.
 
+Die CI (`.github/workflows/build.yml`) baut bei jedem Push und lädt das APK auf `main`
+zusätzlich in das Release `latest` hoch (überschreibt das vorige).
+
 ## Nächste Schritte (TODO)
 - Verlauf **persistent** speichern (Room oder Datei) — überlebt dann App-Neustart
 - **Ignorier-Liste** für eigene Geräte (nur fremde lösen Alarm aus)
-- **Zonen per Touch** verstellbar (wie im Web-Tool die Maus-Ringe)
-- Optional: **Radar-Canvas**-Ansicht
 - Akku-Tuning (Scan-Intervall / `SCAN_MODE_BALANCED`)
