@@ -79,4 +79,8 @@ set -a; . ~/.android-signing/beacon-radar/credentials.env; set +a
 ```
 
 ## Nächste Schritte (TODO)
-- Akku-Tuning (Scan-Intervall / `SCAN_MODE_BALANCED`)
+- (derzeit nichts offen)
+
+## Entscheidungen
+- **Scan-Modus bleibt `SCAN_MODE_LOW_LATENCY`**, auch im Hintergrund (Max, 01.11.2026):
+  schnelle Alarme sind wichtiger als Akku. Kein `BALANCED`-Tuning.
