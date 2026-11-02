@@ -39,6 +39,9 @@ class ScanService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // Nach Neustart durch START_STICKY läuft keine Activity: Zonen selbst laden,
+        // sonst gälten für den Alarm die Standard- statt der eingestellten Schwellen
+        Zones.init(this)
         BleRepository.start(this)
         if (!BleRepository.running.value) {
             // Bluetooth aus oder Scan verweigert: keine „aktiv“-Meldung stehen lassen
