@@ -12,8 +12,8 @@ android {
         applicationId = "com.maxm.beaconradar"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "0.6"
+        versionCode = 8
+        versionName = "0.6.1"
     }
 
     // Fester Signaturschlüssel, damit neue APKs sich drüberinstallieren lassen.
