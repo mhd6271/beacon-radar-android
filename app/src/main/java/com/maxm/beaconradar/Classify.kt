@@ -3,12 +3,6 @@ package com.maxm.beaconradar
 /** Typ-/Hersteller-Erkennung und Nähe-Einstufung (portiert aus beacon_radar.py). */
 object Classify {
 
-    // Zonen-Schwellen in dBm (wie im Python-Tool)
-    const val TH_SEHRNAH = -60
-    const val TH_NAH = -72
-    const val TH_MITTEL = -83
-    const val TH_WEIT = -90
-
     private val COMPANY = mapOf(
         0x004C to "Apple", 0x0006 to "Microsoft", 0x0075 to "Samsung", 0x00E0 to "Google",
         0x0059 to "Nordic", 0x012D to "Sony", 0x0157 to "Huawei", 0x038F to "Xiaomi",

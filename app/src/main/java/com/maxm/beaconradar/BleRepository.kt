@@ -21,6 +21,7 @@ import java.io.File
 object BleRepository {
     private const val ALPHA = 0.35
     private const val STALE_MS = 20_000L
+    private const val FORGET_MS = 5 * 60_000L   // so lange nicht gesehen -> aus dem Speicher
     private const val BEEP_THROTTLE_MS = 1_500L
 
     private val devices = mutableMapOf<String, Device>()
@@ -159,17 +160,9 @@ object BleRepository {
         val name = rec?.deviceName
         val now = System.currentTimeMillis()
 
-        val existing = devices[id]
-        if (existing == null) {
-            devices[id] = Device(id, name, rssi, ib, companies, now)
-        } else {
-            existing.rssi = ALPHA * rssi + (1 - ALPHA) * existing.rssi
-            if (!name.isNullOrBlank()) existing.name = name
-            if (ib != null) existing.ibeacon = ib
-            if (companies.isNotEmpty()) existing.companies = companies
-            existing.lastSeen = now
-        }
-        val dev = devices.getValue(id)
+        val dev = devices[id]?.updated(rssi, name, ib, companies, now, ALPHA)
+            ?: Device(id, name, rssi, ib, companies, now)
+        devices[id] = dev
         checkProximity(dev)
         if (dev.key == _pinned.value) updateTrend(dev, now)
         emit()
@@ -187,6 +180,7 @@ object BleRepository {
 
     private fun emit() {
         val now = System.currentTimeMillis()
+        devices.values.removeAll { now - it.lastSeen > FORGET_MS }
         _state.value = devices.values
             .filter { now - it.lastSeen < STALE_MS }
             .sortedByDescending { it.rssi }

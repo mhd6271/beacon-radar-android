@@ -18,8 +18,20 @@ class ScanService : Service() {
             .setContentText("Scanne nach Geräten …")
             .setOngoing(true)
             .build()
-        startForeground(1, notification)
+        try {
+            startForeground(1, notification)
+        } catch (_: Exception) {
+            // z. B. Bluetooth-Rechte entzogen (Android 14 verlangt sie für connectedDevice)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         BleRepository.start(this)
+        if (!BleRepository.running.value) {
+            // Bluetooth aus oder Scan verweigert: keine „aktiv“-Meldung stehen lassen
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 

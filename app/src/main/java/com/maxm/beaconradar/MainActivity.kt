@@ -1,9 +1,11 @@
 package com.maxm.beaconradar
 
 import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,7 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent { MaterialTheme(colorScheme = darkColorScheme()) { AppScreen(::startScan, ::stopScan) } }
     }
 
-    private fun requestNeededPermissions() {
+    private fun missingPermissions(): List<String> {
         val perms = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             perms += Manifest.permission.BLUETOOTH_SCAN
@@ -47,13 +49,28 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms += Manifest.permission.POST_NOTIFICATIONS
         }
-        val missing = perms.filter {
+        return perms.filter {
             ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    private fun requestNeededPermissions() {
+        val missing = missingPermissions()
         if (missing.isNotEmpty()) permLauncher.launch(missing.toTypedArray())
     }
 
     private fun startScan() {
+        // Ohne Bluetooth-Rechte würde der Foreground-Service (Android 14) abstürzen
+        if (missingPermissions().any { it != Manifest.permission.POST_NOTIFICATIONS }) {
+            Toast.makeText(this, "Bluetooth-Berechtigung fehlt", Toast.LENGTH_SHORT).show()
+            requestNeededPermissions()
+            return
+        }
+        val adapter = (getSystemService(BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+        if (adapter == null || !adapter.isEnabled) {
+            Toast.makeText(this, "Bitte Bluetooth einschalten", Toast.LENGTH_SHORT).show()
+            return
+        }
         val i = Intent(this, ScanService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i) else startService(i)
     }
