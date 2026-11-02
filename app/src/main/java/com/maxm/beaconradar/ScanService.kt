@@ -1,14 +1,28 @@
 package com.maxm.beaconradar
 
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 /** Foreground-Service: scannt weiter, auch wenn die App im Hintergrund ist. */
 class ScanService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    // Bluetooth wird ausgeschaltet -> Scan ist tot; Service beenden statt „aktiv“ zu melden
+    private val btOff = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) {
+            val st = i.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+            if (st == BluetoothAdapter.STATE_TURNING_OFF || st == BluetoothAdapter.STATE_OFF) stopSelf()
+        }
+    }
+    private var btOffRegistered = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Notifier.ensureChannels(this)
@@ -32,10 +46,21 @@ class ScanService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (!btOffRegistered) {
+            ContextCompat.registerReceiver(
+                this, btOff, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            btOffRegistered = true
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
+        if (btOffRegistered) {
+            unregisterReceiver(btOff)
+            btOffRegistered = false
+        }
         BleRepository.stop()
         super.onDestroy()
     }

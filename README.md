@@ -109,7 +109,8 @@ set -a; . ~/.android-signing/beacon-radar/credentials.env; set +a
 ## Versionen
 - **0.6.1** (02.11.2026, noch nicht veröffentlicht) — Liste/Radar aktualisieren sich bei jeder
   Signaländerung (vorher nur bei geänderter Reihenfolge), Start prüft Rechte und Bluetooth
-  statt abzustürzen bzw. leer „aktiv" zu melden, alte Geräte werden aus dem Speicher
+  statt abzustürzen bzw. leer „aktiv" zu melden, Scan-Dienst beendet sich, wenn Bluetooth
+  ausgeschaltet wird, alte Geräte werden aus dem Speicher
   entfernt, Unit-Tests, CI-Actions auf Node 24
 - **0.6** (01.11.2026) — eigene Geräte (Ignorier-Liste)
 - **0.5.1** (01.11.2026) — fester Signaturschlüssel, Updates ohne Deinstallieren
